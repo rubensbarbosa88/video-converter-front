@@ -9,7 +9,11 @@ export default {
     }
     return Vue.$http.post(path.upload, payload.data, options)
   },
-  getVideo (payload) {
-    return Vue.$http.get(path.download(payload))
+  getVideo (payload = {}) {
+    const options = {
+      onDownloadProgress: payload.progress,
+      responseType: 'blob'
+    }
+    return Vue.$http.get(path.download(payload.data), options)
   }
 }

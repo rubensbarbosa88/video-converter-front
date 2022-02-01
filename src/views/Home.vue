@@ -14,8 +14,7 @@
         height="35"
         color="green"
         class="body-2 white--text"
-        @click="uploadVideo"
-      >
+        @click="uploadVideo">
         Upload
       </v-btn>
 
@@ -24,8 +23,7 @@
         height="35"
         color="primary"
         class="body-2 white--text"
-        @click="convertVideo"
-      >
+        @click="convertVideo">
         Converter
       </v-btn>
       <v-btn
@@ -33,8 +31,7 @@
         height="35"
         color="purple"
         class="body-2 white--text"
-        @click="downloadVideo"
-      >
+        @click="downloadVideo">
         Baixar
       </v-btn>
     </v-form>
@@ -44,20 +41,32 @@
       :size="100"
       :width="15"
       :value="uploadPercent"
-      color="teal"
-    >
+      color="teal">
       {{ uploadPercent }}%
     </v-progress-circular>
+
     &nbsp;&nbsp; -- > &nbsp;&nbsp;
+
     <v-progress-circular
       :indeterminate="initDownload"
       :rotate="-90"
       :size="100"
       :width="15"
-      :value="convertPercent"
-      color="primary"
+      :value="wsMessage"
+      color="primary">
+      {{ percent }}
+    </v-progress-circular>
+
+    &nbsp;&nbsp; -- > &nbsp;&nbsp;
+
+    <v-progress-circular
+      :rotate="-90"
+      :size="100"
+      :width="15"
+      :value="downloadPercent"
+      color="purple"
     >
-      {{ `${initDownload ? 'Processando' : `${convertPercent}%`}` }}
+      {{ downloadPercent }}%
     </v-progress-circular>
   </div>
 </template>
@@ -70,17 +79,37 @@ export default {
     video: null,
     videoUploaded: null,
     uploadPercent: 0,
-    convertPercent: 0,
+    downloadPercent: 0,
+    wsMessage: 0,
     connection: null
   }),
   computed: {
     initDownload () {
-      const percent = Number(this.convertPercent)
+      const percent = Number(this.wsMessage)
+
+      if (this.wsMessage === 'Finalizado') return false
       return isNaN(percent)
+    },
+    percent () {
+      if (this.wsMessage === 'Finalizado') {
+        return '100%'
+      } else if (this.initDownload) {
+        return this.wsMessage
+      } else {
+        return `${this.wsMessage || 0}%`
+      }
     }
   },
   methods: {
-    async uploadVideo () {
+    uploadVideo () {
+      if (this.uploadPercent === 100) {
+        this.uploadPercent = 0
+        setTimeout(this.submitForm, 500)
+      } else {
+        this.submitForm()
+      }
+    },
+    async submitForm () {
       try {
         const formData = new FormData()
         formData.append('video', this.video)
@@ -94,31 +123,38 @@ export default {
       }
     },
     convertVideo () {
-      this.connection.send('getFiles')
+      this.connection.send(this.videoUploaded)
+    },
+    convertBinaryFile (binaryData) {
+      const url = window.URL.createObjectURL(new Blob([binaryData]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', 'file.mp4')
+      document.body.appendChild(link)
+      link.click()
+      this.downloadPercent = 100
     },
     async downloadVideo () {
       try {
-        const data = await this.$store.dispatch('getVideo', this.videoUploaded)
-        console.log(data)
+        const data = await this.$store.dispatch('getVideo', { data: this.videoUploaded, progress: this.downloadProgress })
+        this.convertBinaryFile(data)
       } catch (error) {
         console.log('ERRO >>>', error)
       }
     },
     uploadProgress (event) {
-      this.uploadPercent = 0
       const progress = Math.round((event.loaded * 100) / event.total)
       this.uploadPercent = progress === 100 ? 99 : progress
+    },
+    downloadProgress (event) {
+      const progress = Math.round((event.loaded * 100) / event.total)
+      this.downloadPercent = progress === 100 ? 99 : progress
     },
     websocketConnection () {
       this.connection = new WebSocket('ws://localhost:3000/getVideoConverted')
 
       this.connection.onmessage = event => {
-        this.convertPercent = event.data
-      }
-
-      this.connection.onopen = event => {
-        console.log(event)
-        console.log('Successfully connected to the echo websocket server...')
+        this.wsMessage = event.data
       }
     }
   },

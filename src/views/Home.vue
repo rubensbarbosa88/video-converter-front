@@ -81,7 +81,8 @@ export default {
     uploadPercent: 0,
     downloadPercent: 0,
     wsMessage: 0,
-    connection: null
+    connection: null,
+    videoConverted: null
   }),
   computed: {
     initDownload () {
@@ -131,7 +132,7 @@ export default {
       this.connection.send(this.videoUploaded)
     },
     convertBinaryFile (binaryData) {
-      const fileName = this.wsMessage.video.split('_')[1]
+      const fileName = this.videoConverted.split(/_(.+)/)[1]
       const url = window.URL.createObjectURL(new Blob([binaryData]))
       const link = document.createElement('a')
       link.href = url
@@ -142,10 +143,25 @@ export default {
     },
     async downloadVideo () {
       try {
-        const data = await this.$store.dispatch('getVideo', { data: this.videoUploaded, progress: this.downloadProgress })
+        const data = await this.$store.dispatch('getVideo', { data: this.videoConverted, progress: this.downloadProgress })
         this.convertBinaryFile(data)
       } catch (error) {
         console.log('ERRO >>>', error)
+      }
+    },
+    handleWsMessage (data) {
+      switch (data.type) {
+        case 'message':
+          this.wsMessage = data.message
+          break
+        case 'data':
+          this.videoConverted = data.message
+          break
+        case 'error':
+          console.log(data.message)
+          break
+        default:
+          this.wsMessage = data.message
       }
     },
     uploadProgress (event) {
@@ -160,7 +176,8 @@ export default {
       this.connection = new WebSocket('ws://localhost:3000/getVideoConverted')
 
       this.connection.onmessage = event => {
-        this.wsMessage = JSON.parse(event.data)
+        const data = JSON.parse(event.data)
+        this.handleWsMessage(data)
       }
     }
   },

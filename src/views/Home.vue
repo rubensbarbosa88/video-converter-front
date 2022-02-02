@@ -85,19 +85,24 @@ export default {
   }),
   computed: {
     initDownload () {
-      const percent = Number(this.wsMessage)
+      if (typeof this.wsMessage !== 'object') {
+        const percent = Number(this.wsMessage)
 
-      if (this.wsMessage === 'Finalizado') return false
-      return isNaN(percent)
+        return isNaN(percent)
+      }
+
+      return false
     },
     percent () {
-      if (this.wsMessage === 'Finalizado') {
-        return '100%'
-      } else if (this.initDownload) {
-        return this.wsMessage
-      } else {
-        return `${this.wsMessage || 0}%`
+      if (typeof this.wsMessage !== 'object') {
+        if (this.initDownload) {
+          return this.wsMessage
+        } else {
+          return `${this.wsMessage || 0}%`
+        }
       }
+
+      return '100%'
     }
   },
   methods: {
@@ -126,10 +131,11 @@ export default {
       this.connection.send(this.videoUploaded)
     },
     convertBinaryFile (binaryData) {
+      const fileName = this.wsMessage.video.split('_')[1]
       const url = window.URL.createObjectURL(new Blob([binaryData]))
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', 'file.mp4')
+      link.setAttribute('download', fileName)
       document.body.appendChild(link)
       link.click()
       this.downloadPercent = 100
@@ -154,7 +160,7 @@ export default {
       this.connection = new WebSocket('ws://localhost:3000/getVideoConverted')
 
       this.connection.onmessage = event => {
-        this.wsMessage = event.data
+        this.wsMessage = JSON.parse(event.data)
       }
     }
   },

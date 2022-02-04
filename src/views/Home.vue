@@ -1,6 +1,32 @@
 <template>
   <div>
+    <v-overlay
+      absolute
+      color="white"
+      opacity="0.8"
+      :value="this.uploadPercent">
 
+      <div class="d-flex flex-column justify-center">
+        <h1 class="display-4 text-center black--text mb-12"> {{ textProgress }} </h1>
+        <div class="d-flex align-center">
+          <v-progress-linear
+            v-model="this.uploadPercent"
+            stream
+            color="light-green darken-4"
+            height="20"
+            striped>
+            <strong>{{ uploadPercent }}%</strong>
+          </v-progress-linear>
+
+          <v-progress-linear
+            style="opacity:0.2"
+            color="light-blue"
+            height="20"
+            value="0"
+            striped />
+        </div>
+      </div>
+    </v-overlay>
     <h1> Conversor de vídeos </h1>
 
     <v-form>
@@ -9,34 +35,34 @@
         show-size
         label="Selecione o arquivo"
       />
-      <v-btn
+      <!-- <v-btn
         rounded
         height="35"
         color="green"
         class="body-2 white--text"
         @click="uploadVideo">
         Upload
-      </v-btn>
+      </v-btn> -->
 
       <v-btn
         rounded
         height="35"
         color="primary"
         class="body-2 white--text"
-        @click="convertVideo">
+        @click="uploadVideo">
         Converter
       </v-btn>
-      <v-btn
+      <!-- <v-btn
         rounded
         height="35"
         color="purple"
         class="body-2 white--text"
         @click="downloadVideo">
         Baixar
-      </v-btn>
+      </v-btn> -->
     </v-form>
 
-    <v-progress-circular
+    <!-- <v-progress-circular
       :rotate="-90"
       :size="100"
       :width="15"
@@ -67,7 +93,7 @@
       color="purple"
     >
       {{ downloadPercent }}%
-    </v-progress-circular>
+    </v-progress-circular> -->
   </div>
 </template>
 
@@ -85,14 +111,12 @@ export default {
     videoConverted: null
   }),
   computed: {
-    initDownload () {
-      if (typeof this.wsMessage !== 'object') {
-        const percent = Number(this.wsMessage)
-
-        return isNaN(percent)
+    textProgress () {
+      if (this.uploadPercent && this.uploadPercent !== 100) {
+        return 'Upload'
       }
 
-      return false
+      return 'Processando'
     },
     percent () {
       if (typeof this.wsMessage !== 'object') {
@@ -186,3 +210,19 @@ export default {
   }
 }
 </script>
+<style lang="styl">
+  .v-overlay__content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .linear-loading {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+  }
+</style>

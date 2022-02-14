@@ -4,27 +4,50 @@
       absolute
       color="white"
       opacity="0.8"
-      :value="this.uploadPercent">
+      :value="uploadPercent || wsProgress">
 
       <div class="d-flex flex-column justify-center">
-        <h1 class="display-4 text-center black--text mb-12"> {{ textProgress }} </h1>
-        <div class="d-flex align-center">
-          <v-progress-linear
-            v-model="this.uploadPercent"
-            stream
-            color="light-green darken-4"
-            height="20"
-            striped>
-            <strong>{{ uploadPercent }}%</strong>
-          </v-progress-linear>
+        <div class="d-flex align-center justify-center">
+          <v-progress-circular
+            :value="uploadPercent"
+            :rotate="-180"
+            size="300"
+            width="15"
+            color="teal">
+            <div class="text-center">
+              <span class="black--text d-block title font-weight-light"> Upload </span>
+              <span class="d-block display-1 font-weight-bold mt-1"> {{ uploadPercent }}% </span>
+            </div>
+          </v-progress-circular>
 
-          <v-progress-linear
-            style="opacity:0.2"
-            color="light-blue"
-            height="20"
-            value="0"
-            striped />
+          <div style="width:10%">
+            <v-progress-linear
+              :value="uploadPercent"
+              buffer-value="0"
+              color="teal"
+              height="20"
+              stream />
+          </div>
+
+          <v-progress-circular
+            :style="wsProgress || uploadPercent === 100? 'opacity:1':'opacity:0.3'"
+            :value="wsProgress"
+            :rotate="-180"
+            size="300"
+            width="15"
+            color="teal">
+            <div
+              :style="wsProgress || uploadPercent === 100 ? 'opacity:1':'opacity:0.3'"
+              class="text-center">
+              <span class="black--text d-block title font-weight-light"> Convertendo para avi </span>
+              <span class="d-block display-1 font-weight-bold mt-1"> {{ wsProgress }}% </span>
+            </div>
+          </v-progress-circular>
         </div>
+        <h1
+          class="display-2 text-center black--text mt-12 font-weight-light"
+          v-html="textProgress">
+        </h1>
       </div>
     </v-overlay>
     <h1> Conversor de vídeos </h1>
@@ -35,14 +58,6 @@
         show-size
         label="Selecione o arquivo"
       />
-      <!-- <v-btn
-        rounded
-        height="35"
-        color="green"
-        class="body-2 white--text"
-        @click="uploadVideo">
-        Upload
-      </v-btn> -->
 
       <v-btn
         rounded
@@ -52,48 +67,7 @@
         @click="uploadVideo">
         Converter
       </v-btn>
-      <!-- <v-btn
-        rounded
-        height="35"
-        color="purple"
-        class="body-2 white--text"
-        @click="downloadVideo">
-        Baixar
-      </v-btn> -->
     </v-form>
-
-    <!-- <v-progress-circular
-      :rotate="-90"
-      :size="100"
-      :width="15"
-      :value="uploadPercent"
-      color="teal">
-      {{ uploadPercent }}%
-    </v-progress-circular>
-
-    &nbsp;&nbsp; -- > &nbsp;&nbsp;
-
-    <v-progress-circular
-      :indeterminate="initDownload"
-      :rotate="-90"
-      :size="100"
-      :width="15"
-      :value="wsMessage"
-      color="primary">
-      {{ percent }}
-    </v-progress-circular>
-
-    &nbsp;&nbsp; -- > &nbsp;&nbsp;
-
-    <v-progress-circular
-      :rotate="-90"
-      :size="100"
-      :width="15"
-      :value="downloadPercent"
-      color="purple"
-    >
-      {{ downloadPercent }}%
-    </v-progress-circular> -->
   </div>
 </template>
 
@@ -106,7 +80,8 @@ export default {
     videoUploaded: null,
     uploadPercent: 0,
     downloadPercent: 0,
-    wsMessage: 0,
+    wsMessage: null,
+    wsProgress: 0,
     connection: null,
     videoConverted: null
   }),
@@ -114,20 +89,11 @@ export default {
     textProgress () {
       if (this.uploadPercent && this.uploadPercent !== 100) {
         return 'Upload'
+      } else if (this.wsMessage) {
+        return this.wsMessage
       }
 
       return 'Processando'
-    },
-    percent () {
-      if (typeof this.wsMessage !== 'object') {
-        if (this.initDownload) {
-          return this.wsMessage
-        } else {
-          return `${this.wsMessage || 0}%`
-        }
-      }
-
-      return '100%'
     }
   },
   methods: {
@@ -147,13 +113,11 @@ export default {
         const data = await this.$store.dispatch('upload', { data: formData, progress: this.uploadProgress })
         this.uploadPercent = 100
 
-        this.videoUploaded = data.video
+        this.connection.send(data.video)
+        return data
       } catch (error) {
         this.uploadPercent = 0
       }
-    },
-    convertVideo () {
-      this.connection.send(this.videoUploaded)
     },
     convertBinaryFile (binaryData) {
       const fileName = this.videoConverted.split(/_(.+)/)[1]
@@ -177,6 +141,9 @@ export default {
       switch (data.type) {
         case 'message':
           this.wsMessage = data.message
+          break
+        case 'progress':
+          this.wsProgress = data.message
           break
         case 'data':
           this.videoConverted = data.message

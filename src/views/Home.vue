@@ -1,13 +1,24 @@
 <template>
   <div>
+    <!-- uploadPercent || wsProgress -->
     <v-overlay
       absolute
       color="white"
       opacity="0.8"
-      :value="uploadPercent || wsProgress">
+      :value="true">
 
       <div class="d-flex flex-column justify-center">
         <div class="d-flex align-center justify-center">
+          <v-btn
+            class="headline font-weight-medium"
+            x-large
+            rounded
+            outlined
+            width="300"
+            height="60"
+            color="teal">
+            Baixar
+          </v-btn>
           <v-progress-circular
             :value="uploadPercent"
             :rotate="-180"

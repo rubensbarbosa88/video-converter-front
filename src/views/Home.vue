@@ -1,206 +1,251 @@
 <template>
-  <div>
-    <!-- uploadPercent || wsProgress -->
-    <v-overlay
-      absolute
-      color="white"
-      opacity="0.8"
-      :value="true">
+  <div class="home-container py-6">
+    <conversion-overlay
+      :show="status !== 'idle'"
+      :status="status"
+      :upload-percent="uploadPercent"
+      :conversion-percent="wsProgress"
+      :status-message="wsMessage"
+      :error-message="errorMessage"
+      :selected-format="selectedFormat"
+      :remaining-seconds="remainingSeconds"
+      :is-downloading="isDownloading"
+      @download="handleDownload"
+      @reset="handleReset"
+      @retry="handleReset"
+    />
 
-      <div class="d-flex flex-column justify-center">
-        <div class="d-flex align-center justify-center">
-          <v-btn
-            class="headline font-weight-medium"
-            x-large
-            rounded
-            outlined
-            width="300"
-            height="60"
-            color="teal">
-            Baixar
-          </v-btn>
-          <v-progress-circular
-            :value="uploadPercent"
-            :rotate="-180"
-            size="300"
-            width="15"
-            color="teal">
-            <div class="text-center">
-              <span class="black--text d-block title font-weight-light"> Upload </span>
-              <span class="d-block display-1 font-weight-bold mt-1"> {{ uploadPercent }}% </span>
-            </div>
-          </v-progress-circular>
+    <v-row justify="center">
+      <v-col cols="12" sm="10" md="8" lg="6">
+        <conversion-form
+          ref="conversionForm"
+          :disabled="status !== 'idle'"
+          @submit="handleFormSubmit"
+          @error="notify($event, 'error')"
+        />
+      </v-col>
+    </v-row>
 
-          <div style="width:10%">
-            <v-progress-linear
-              :value="uploadPercent"
-              buffer-value="0"
-              color="teal"
-              height="20"
-              stream />
-          </div>
-
-          <v-progress-circular
-            :style="wsProgress || uploadPercent === 100? 'opacity:1':'opacity:0.3'"
-            :value="wsProgress"
-            :rotate="-180"
-            size="300"
-            width="15"
-            color="teal">
-            <div
-              :style="wsProgress || uploadPercent === 100 ? 'opacity:1':'opacity:0.3'"
-              class="text-center">
-              <span class="black--text d-block title font-weight-light"> Convertendo para avi </span>
-              <span class="d-block display-1 font-weight-bold mt-1"> {{ wsProgress }}% </span>
-            </div>
-          </v-progress-circular>
-        </div>
-        <h1
-          class="display-2 text-center black--text mt-12 font-weight-light"
-          v-html="textProgress">
-        </h1>
-      </div>
-    </v-overlay>
-    <h1> Conversor de vídeos </h1>
-
-    <v-form>
-      <v-file-input
-        v-model="video"
-        show-size
-        label="Selecione o arquivo"
-      />
-
-      <v-btn
-        rounded
-        height="35"
-        color="primary"
-        class="body-2 white--text"
-        @click="uploadVideo">
-        Converter
-      </v-btn>
-    </v-form>
+    <v-snackbar
+      v-model="snackbar"
+      :color="snackbarColor"
+      timeout="4000"
+      top
+      right>
+      {{ snackbarText }}
+      <template v-slot:action="{ attrs }">
+        <v-btn text v-bind="attrs" @click="snackbar = false">
+          Fechar
+        </v-btn>
+      </template>
+    </v-snackbar>
   </div>
 </template>
 
 <script>
+/* eslint-disable no-console */
+import ConversionForm from '@/components/ConversionForm.vue'
+import ConversionOverlay from '@/components/ConversionOverlay.vue'
+import { EXPIRATION_TIME_MS } from '@/helpers/constants'
+import {
+  saveConversionState,
+  getSavedConversionState,
+  clearSavedConversionState
+} from '@/helpers/storage'
+import { triggerFileDownload } from '@/helpers/fileDownload'
+import { startExpirationTimer } from '@/helpers/timeFormat'
+import { WebSocketClient } from '@/helpers/websocket'
 
 export default {
   name: 'Home',
-  data: () => ({
-    video: null,
-    videoUploaded: null,
-    uploadPercent: 0,
-    downloadPercent: 0,
-    wsMessage: null,
-    wsProgress: 0,
-    connection: null,
-    videoConverted: null
-  }),
-  computed: {
-    textProgress () {
-      if (this.uploadPercent && this.uploadPercent !== 100) {
-        return 'Upload'
-      } else if (this.wsMessage) {
-        return this.wsMessage
-      }
-
-      return 'Processando'
-    }
+  components: {
+    ConversionForm,
+    ConversionOverlay
   },
+  data: () => ({
+    status: 'idle', // 'idle' | 'uploading' | 'converting' | 'done' | 'error'
+    uploadPercent: 0,
+    wsProgress: 0,
+    wsMessage: '',
+    errorMessage: '',
+    videoUploaded: null,
+    videoConverted: null,
+    selectedFormat: 'mp4',
+    isDownloading: false,
+    expiresAt: null,
+    remainingSeconds: 0,
+    expirationTimer: null,
+    snackbar: false,
+    snackbarText: '',
+    snackbarColor: 'info'
+  }),
   methods: {
-    uploadVideo () {
-      if (this.uploadPercent === 100) {
-        this.uploadPercent = 0
-        setTimeout(this.submitForm, 500)
-      } else {
-        this.submitForm()
+    notify (text, color = 'info') {
+      this.snackbarText = text
+      this.snackbarColor = color
+      this.snackbar = true
+    },
+    initWebSocket () {
+      this.wsClient = new WebSocketClient({
+        onMessage: msg => { this.wsMessage = msg },
+        onProgress: percent => {
+          this.status = 'converting'
+          this.wsProgress = Math.min(100, Math.max(0, Math.round(percent)))
+        },
+        onData: convertedFilename => {
+          this.videoConverted = convertedFilename
+          this.wsProgress = 100
+          this.status = 'done'
+          this.wsMessage = 'Conversão concluída!'
+          this.expiresAt = Date.now() + EXPIRATION_TIME_MS
+          saveConversionState({
+            videoConverted: this.videoConverted,
+            selectedFormat: this.selectedFormat,
+            expiresAt: this.expiresAt
+          })
+          this.startCountdown()
+        },
+        onError: errMsg => {
+          this.status = 'error'
+          this.errorMessage = errMsg
+          this.notify(errMsg, 'error')
+        },
+        onDisconnect: disconnectMsg => {
+          this.status = 'error'
+          this.errorMessage = disconnectMsg
+          this.notify(disconnectMsg, 'error')
+        }
+      })
+      this.wsClient.connect()
+    },
+    startCountdown () {
+      if (this.expirationTimer) clearInterval(this.expirationTimer)
+      this.expirationTimer = startExpirationTimer(
+        () => this.expiresAt,
+        diff => { this.remainingSeconds = diff },
+        () => {
+          if (this.expirationTimer) clearInterval(this.expirationTimer)
+          this.expirationTimer = null
+          clearSavedConversionState()
+          if (this.status === 'done') {
+            this.status = 'error'
+            this.errorMessage = 'O prazo de 30 minutos para download do arquivo expirou no servidor.'
+            this.notify(this.errorMessage, 'warning')
+          }
+        }
+      )
+    },
+    restoreSavedState () {
+      const saved = getSavedConversionState()
+      if (saved) {
+        this.videoConverted = saved.videoConverted
+        this.selectedFormat = saved.selectedFormat || 'mp4'
+        this.expiresAt = saved.expiresAt
+        this.uploadPercent = 100
+        this.wsProgress = 100
+        this.status = 'done'
+        this.wsMessage = 'Conversão concluída!'
+        this.startCountdown()
+        const mins = Math.max(1, Math.ceil((saved.expiresAt - Date.now()) / 60000))
+        this.notify(`Conversão anterior recuperada! Disponível por mais aprox. ${mins} min.`, 'info')
       }
     },
-    async submitForm () {
+    handleReset () {
+      clearSavedConversionState()
+      if (this.expirationTimer) {
+        clearInterval(this.expirationTimer)
+        this.expirationTimer = null
+      }
+      this.expiresAt = null
+      this.remainingSeconds = 0
+      this.status = 'idle'
+      this.uploadPercent = 0
+      this.wsProgress = 0
+      this.wsMessage = ''
+      this.videoConverted = null
+      this.videoUploaded = null
+      this.errorMessage = ''
+      this.isDownloading = false
+      if (this.$refs.conversionForm) {
+        this.$refs.conversionForm.reset()
+      }
+    },
+    async handleFormSubmit ({ file, format }) {
+      this.handleReset()
+      this.selectedFormat = format
+      this.status = 'uploading'
+      this.wsClient.setConverting(true)
+
       try {
         const formData = new FormData()
-        formData.append('video', this.video)
+        formData.append('video', file)
 
-        const data = await this.$store.dispatch('upload', { data: formData, progress: this.uploadProgress })
+        const responseData = await this.$store.dispatch('upload', {
+          data: formData,
+          progress: event => {
+            if (event.total) {
+              const p = Math.round((event.loaded * 100) / event.total)
+              this.uploadPercent = p >= 100 ? 99 : p
+            }
+          }
+        })
+
+        if (!responseData || !responseData.video) {
+          throw new Error('Servidor não retornou o identificador do vídeo.')
+        }
+
         this.uploadPercent = 100
+        this.videoUploaded = responseData.video
+        this.status = 'converting'
+        this.wsMessage = 'Iniciando processamento...'
 
-        this.connection.send(data.video)
-        return data
-      } catch (error) {
-        this.uploadPercent = 0
+        await this.wsClient.send({
+          video: this.videoUploaded,
+          format: this.selectedFormat
+        })
+      } catch (err) {
+        this.status = 'error'
+        this.errorMessage = err.message || 'Falha ao enviar arquivo'
+        this.notify(this.errorMessage, 'error')
       }
     },
-    convertBinaryFile (binaryData) {
-      const fileName = this.videoConverted.split(/_(.+)/)[1]
-      const url = window.URL.createObjectURL(new Blob([binaryData]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', fileName)
-      document.body.appendChild(link)
-      link.click()
-      this.downloadPercent = 100
-    },
-    async downloadVideo () {
+    async handleDownload () {
+      if (!this.videoConverted) {
+        this.notify('Nenhum vídeo disponível para download.', 'warning')
+        return
+      }
+
+      this.isDownloading = true
       try {
-        const data = await this.$store.dispatch('getVideo', { data: this.videoConverted, progress: this.downloadProgress })
-        this.convertBinaryFile(data)
-      } catch (error) {
-        console.log('ERRO >>>', error)
-      }
-    },
-    handleWsMessage (data) {
-      switch (data.type) {
-        case 'message':
-          this.wsMessage = data.message
-          break
-        case 'progress':
-          this.wsProgress = data.message
-          break
-        case 'data':
-          this.videoConverted = data.message
-          break
-        case 'error':
-          console.log(data.message)
-          break
-        default:
-          this.wsMessage = data.message
-      }
-    },
-    uploadProgress (event) {
-      const progress = Math.round((event.loaded * 100) / event.total)
-      this.uploadPercent = progress === 100 ? 99 : progress
-    },
-    downloadProgress (event) {
-      const progress = Math.round((event.loaded * 100) / event.total)
-      this.downloadPercent = progress === 100 ? 99 : progress
-    },
-    websocketConnection () {
-      this.connection = new WebSocket('ws://localhost:3000/getVideoConverted')
-
-      this.connection.onmessage = event => {
-        const data = JSON.parse(event.data)
-        this.handleWsMessage(data)
+        const data = await this.$store.dispatch('getVideo', {
+          data: this.videoConverted
+        })
+        triggerFileDownload(data, this.videoConverted, this.selectedFormat)
+        this.notify('Download concluído com sucesso!', 'success')
+      } catch (err) {
+        const msg = err.message || 'Erro ao baixar o vídeo.'
+        this.notify(msg, 'error')
+        if (msg.includes('expirado') || msg.includes('não encontrado')) {
+          clearSavedConversionState()
+          this.status = 'error'
+          this.errorMessage = msg
+        }
+      } finally {
+        this.isDownloading = false
       }
     }
   },
   created () {
-    this.websocketConnection()
+    this.initWebSocket()
+    this.restoreSavedState()
+  },
+  beforeDestroy () {
+    if (this.expirationTimer) {
+      clearInterval(this.expirationTimer)
+    }
+    if (this.wsClient) {
+      this.wsClient.close()
+    }
   }
 }
 </script>
-<style lang="styl">
-  .v-overlay__content {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  .linear-loading {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-  }
-</style>

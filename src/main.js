@@ -5,13 +5,15 @@ import store from './store'
 import vuetify from './plugins/vuetify'
 import axios from 'axios'
 
+const baseURL = process.env.VUE_APP_API_URL || 'http://localhost:3000'
+
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:3000',
-  headers: { common: { 'Access-Control-Allow-Origin': '*' } }
+  baseURL
 })
 
 Vue.config.productionTip = false
-Reflect.defineProperty(Vue, '$http', { value: axiosInstance })
+Vue.$http = axiosInstance
+Vue.prototype.$http = axiosInstance
 
 new Vue({
   router,

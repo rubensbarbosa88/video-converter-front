@@ -15,16 +15,33 @@
       @retry="handleReset"
     />
 
-    <v-row justify="center">
-      <v-col cols="12" sm="10" md="8" lg="6">
-        <conversion-form
-          ref="conversionForm"
-          :disabled="status !== 'idle'"
-          @submit="handleFormSubmit"
-          @error="notify($event, 'error')"
-        />
-      </v-col>
-    </v-row>
+    <div ref="hero" class="home-grid">
+      <section class="hero">
+        <span data-intro class="hero__eyebrow font-mono">
+          <i class="live-dot" /> conversor online · grátis
+        </span>
+        <h1 class="hero__title font-display">
+          <span data-split>Converta qualquer</span>
+          <span class="text-gradient hero__accent">vídeo.</span>
+        </h1>
+        <p data-intro class="hero__text">
+          Solte o arquivo, escolha o formato e acompanhe o upload e a conversão em tempo real.
+          Seu arquivo fica disponível por 30 minutos.
+        </p>
+        <ul data-intro class="hero__stats font-mono">
+          <li><strong>9</strong> formatos</li>
+          <li><strong>200MB</strong> por arquivo</li>
+          <li><strong>30min</strong> p/ download</li>
+        </ul>
+      </section>
+
+      <conversion-form
+        ref="conversionForm"
+        :disabled="status !== 'idle'"
+        @submit="handleFormSubmit"
+        @error="notify($event, 'error')"
+      />
+    </div>
 
     <v-snackbar
       v-model="snackbar"
@@ -55,6 +72,8 @@ import {
 import { triggerFileDownload } from '@/helpers/fileDownload'
 import { startExpirationTimer } from '@/helpers/timeFormat'
 import { WebSocketClient } from '@/helpers/websocket'
+import { animate, splitText, stagger, spring } from 'animejs'
+import { introTimeline, prefersReducedMotion } from '@/helpers/animations'
 
 export default {
   name: 'Home',
@@ -239,7 +258,35 @@ export default {
     this.initWebSocket()
     this.restoreSavedState()
   },
+  mounted () {
+    // Animações puramente visuais (não interferem na lógica)
+    this.intro = introTimeline(this.$refs.hero)
+    const accent = this.$el.querySelector('.hero__accent')
+    if (accent && !prefersReducedMotion()) {
+      this.accentSplit = splitText(accent, { chars: true })
+      const chars = this.accentSplit.chars
+      animate(chars, {
+        y: { from: -120 },
+        opacity: { from: 0 },
+        rotate: { from: -30 },
+        ease: spring({ bounce: 0.55, duration: 1100 }),
+        delay: stagger(70, { start: 650 })
+      })
+      this.onAccentEnter = () => animate(chars, {
+        y: [0, -22, 0],
+        scale: [1, 1.15, 1],
+        duration: 650,
+        ease: 'outElastic(1, .5)',
+        delay: stagger(45)
+      })
+      accent.addEventListener('mouseenter', this.onAccentEnter)
+      this.accentEl = accent
+    }
+  },
   beforeDestroy () {
+    if (this.intro) this.intro.revert()
+    if (this.accentEl) this.accentEl.removeEventListener('mouseenter', this.onAccentEnter)
+    if (this.accentSplit) this.accentSplit.revert()
     if (this.expirationTimer) {
       clearInterval(this.expirationTimer)
     }
@@ -249,3 +296,98 @@ export default {
   }
 }
 </script>
+
+<style lang="scss" scoped>
+.home-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 56px;
+  align-items: center;
+  min-height: calc(100vh - 140px);
+  padding: 32px 0 48px;
+}
+
+.hero {
+  &__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .75rem;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    background: var(--surface);
+  }
+
+  &__title {
+    font-size: clamp(2.6rem, 6vw, 4.6rem);
+    font-weight: 700;
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+    margin: 22px 0 18px;
+
+    > span { display: block; }
+  }
+
+  &__accent {
+    cursor: default;
+    display: inline-block !important;
+    padding-bottom: .08em;
+  }
+
+  &__text {
+    color: var(--text-muted);
+    font-size: 1.05rem;
+    line-height: 1.6;
+    max-width: 440px;
+    margin: 0 0 28px;
+  }
+
+  &__stats {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    li {
+      font-size: .78rem;
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    li:nth-child(1) strong { color: var(--red); }
+    li:nth-child(2) strong { color: var(--yellow); }
+    li:nth-child(3) strong { color: var(--green); }
+  }
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 0 rgba(141, 255, 85, .6);
+  animation: live 1.8s infinite;
+}
+
+@keyframes live {
+  0% { box-shadow: 0 0 0 0 rgba(141, 255, 85, .6); }
+  70% { box-shadow: 0 0 0 10px rgba(141, 255, 85, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(141, 255, 85, 0); }
+}
+
+@media (max-width: 960px) {
+  .home-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    min-height: 0;
+    padding-top: 16px;
+  }
+}
+</style>

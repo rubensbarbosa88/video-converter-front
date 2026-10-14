@@ -1,7 +1,11 @@
 /* eslint-disable no-console */
 export class WebSocketClient {
   constructor ({ url, onMessage, onProgress, onData, onError, onDisconnect }) {
-    this.url = url || process.env.VUE_APP_WS_URL || 'ws://localhost:3000/getVideoConverted'
+    let resolvedUrl = url || process.env.VUE_APP_WS_URL || 'ws://localhost:3000/getVideoConverted'
+    if (typeof window !== 'undefined' && window.location && window.location.protocol === 'https:' && resolvedUrl.startsWith('ws://')) {
+      resolvedUrl = resolvedUrl.replace(/^ws:\/\//i, 'wss://')
+    }
+    this.url = resolvedUrl
     this.callbacks = { onMessage, onProgress, onData, onError, onDisconnect }
     this.connection = null
     this.reconnectAttempts = 0

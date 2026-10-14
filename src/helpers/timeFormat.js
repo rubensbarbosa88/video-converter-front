@@ -3,7 +3,7 @@ export function formatRemainingTime (remainingSeconds) {
   const mins = Math.floor(remainingSeconds / 60)
   const secs = remainingSeconds % 60
   const paddedSecs = secs < 10 ? `0${secs}` : secs
-  return `Disponível para download por mais ${mins}m ${paddedSecs}s (limite de 30 min)`
+  return `Disponível para download por mais ${mins}m ${paddedSecs}s (limite de 15 min)`
 }
 
 export function startExpirationTimer (getExpiresAt, onTick, onExpire) {

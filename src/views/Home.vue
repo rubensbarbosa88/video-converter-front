@@ -26,12 +26,12 @@
         </h1>
         <p data-intro class="hero__text">
           Solte o arquivo, escolha o formato e acompanhe o upload e a conversão em tempo real.
-          Seu arquivo fica disponível por 30 minutos.
+          Seu arquivo fica disponível por 15 minutos.
         </p>
         <ul data-intro class="hero__stats font-mono">
           <li><strong>9</strong> formatos</li>
-          <li><strong>200MB</strong> por arquivo</li>
-          <li><strong>30min</strong> p/ download</li>
+          <li><strong>100MB</strong> por arquivo</li>
+          <li><strong>15min</strong> p/ download</li>
         </ul>
       </section>
 
@@ -148,7 +148,7 @@ export default {
           clearSavedConversionState()
           if (this.status === 'done') {
             this.status = 'error'
-            this.errorMessage = 'O prazo de 30 minutos para download do arquivo expirou no servidor.'
+            this.errorMessage = 'O prazo de 15 minutos para download do arquivo expirou no servidor.'
             this.notify(this.errorMessage, 'warning')
           }
         }

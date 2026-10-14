@@ -35,7 +35,7 @@
           <p class="dropzone__title font-display">
             {{ isDragging ? 'Solte para enviar' : 'Arraste o vídeo ou clique para escolher' }}
           </p>
-          <p class="dropzone__hint font-mono">mp4 · mov · mkv · avi · webm … — máx. 200MB</p>
+          <p class="dropzone__hint font-mono">mp4 · mov · mkv · avi · webm … — máx. 100MB</p>
         </template>
 
         <div v-else ref="fileInfo" class="file-info">
@@ -100,7 +100,7 @@
 import { MAX_FILE_SIZE, OUTPUT_FORMATS } from '@/helpers/constants'
 import { magnetic, pressBounce, popIn, pulse, shake } from '@/helpers/animations'
 
-const SIZE_ERROR = 'O arquivo excede o limite máximo permitido de 200MB.'
+const SIZE_ERROR = 'O arquivo excede o limite máximo permitido de 100MB.'
 
 export default {
   name: 'ConversionForm',

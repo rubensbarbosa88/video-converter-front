@@ -1,6 +1,6 @@
 export const STORAGE_KEY = 'video_converter_last_conversion'
-export const MAX_FILE_SIZE = 200 * 1024 * 1024 // 200MB
-export const EXPIRATION_TIME_MS = 30 * 60 * 1000 // 30 minutos
+export const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100MB
+export const EXPIRATION_TIME_MS = 15 * 60 * 1000 // 15 minutos
 
 export const OUTPUT_FORMATS = [
   { text: 'MP4 (.mp4) - Padrão universal (Recomendado)', value: 'mp4' },

@@ -9,7 +9,7 @@ export default {
     } catch (err) {
       let errorMessage = 'Erro ao realizar upload do vídeo'
       if (err?.response?.status === 413) {
-        errorMessage = err?.response?.data?.message || 'O arquivo excede o limite máximo permitido de 200MB.'
+        errorMessage = err?.response?.data?.message || 'O arquivo excede o limite máximo permitido de 100MB.'
       } else if (err?.response?.data?.message) {
         errorMessage = err.response.data.message
       } else if (err?.message) {

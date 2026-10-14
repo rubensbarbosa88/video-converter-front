@@ -75,7 +75,7 @@
 
               <button id="reset-btn" type="button" class="pill-btn pill-btn--ghost" @click="$emit('reset')">
                 <v-icon small>mdi-plus</v-icon>
-                Converter outro vídeo
+                Converter outro vídeo / Fechar
               </button>
             </div>
           </template>

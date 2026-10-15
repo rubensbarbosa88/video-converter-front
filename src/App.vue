@@ -24,6 +24,13 @@
       <v-container class="app-container">
         <router-view/>
       </v-container>
+
+      <v-divider style="opacity: 0.2;" />
+      <v-footer dark padless class="white--text justify-center py-3" style="opacity: 0.2;">
+        <div class="white--text caption">
+          © {{ new Date().getFullYear() }} Rubens Barbosa. Todos os direitos reservados.
+        </div>
+    </v-footer>
     </v-main>
   </v-app>
 </template>

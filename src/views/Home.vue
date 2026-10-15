@@ -25,8 +25,8 @@
           <span class="hero__accent">vídeo.</span>
         </h1>
         <p data-intro class="hero__text">
-          Solte o arquivo, escolha o formato e acompanhe o upload e a conversão em tempo real.
-          Seu arquivo fica disponível por 15 minutos.
+          Solte o arquivo, escolha o formato e acompanhe o upload e a conversão
+          em tempo real. Seu arquivo fica disponível por 15 minutos.
         </p>
         <ul data-intro class="hero__stats font-mono">
           <li><strong>9</strong> formatos</li>
@@ -48,12 +48,11 @@
       :color="snackbarColor"
       timeout="4000"
       top
-      right>
+      right
+    >
       {{ snackbarText }}
       <template v-slot:action="{ attrs }">
-        <v-btn text v-bind="attrs" @click="snackbar = false">
-          Fechar
-        </v-btn>
+        <v-btn text v-bind="attrs" @click="snackbar = false"> Fechar </v-btn>
       </template>
     </v-snackbar>
   </div>
@@ -106,12 +105,14 @@ export default {
     },
     initWebSocket () {
       this.wsClient = new WebSocketClient({
-        onMessage: msg => { this.wsMessage = msg },
-        onProgress: percent => {
+        onMessage: (msg) => {
+          this.wsMessage = msg
+        },
+        onProgress: (percent) => {
           this.status = 'converting'
           this.wsProgress = Math.min(100, Math.max(0, Math.round(percent)))
         },
-        onData: convertedFilename => {
+        onData: (convertedFilename) => {
           this.videoConverted = convertedFilename
           this.wsProgress = 100
           this.status = 'done'
@@ -124,12 +125,12 @@ export default {
           })
           this.startCountdown()
         },
-        onError: errMsg => {
+        onError: (errMsg) => {
           this.status = 'error'
           this.errorMessage = errMsg
           this.notify(errMsg, 'error')
         },
-        onDisconnect: disconnectMsg => {
+        onDisconnect: (disconnectMsg) => {
           this.status = 'error'
           this.errorMessage = disconnectMsg
           this.notify(disconnectMsg, 'error')
@@ -141,14 +142,17 @@ export default {
       if (this.expirationTimer) clearInterval(this.expirationTimer)
       this.expirationTimer = startExpirationTimer(
         () => this.expiresAt,
-        diff => { this.remainingSeconds = diff },
+        (diff) => {
+          this.remainingSeconds = diff
+        },
         () => {
           if (this.expirationTimer) clearInterval(this.expirationTimer)
           this.expirationTimer = null
           clearSavedConversionState()
           if (this.status === 'done') {
             this.status = 'error'
-            this.errorMessage = 'O prazo de 15 minutos para download do arquivo expirou no servidor.'
+            this.errorMessage =
+              'O prazo de 15 minutos para download do arquivo expirou no servidor.'
             this.notify(this.errorMessage, 'warning')
           }
         }
@@ -165,8 +169,14 @@ export default {
         this.status = 'done'
         this.wsMessage = 'Conversão concluída!'
         this.startCountdown()
-        const mins = Math.max(1, Math.ceil((saved.expiresAt - Date.now()) / 60000))
-        this.notify(`Conversão anterior recuperada! Disponível por mais aprox. ${mins} min.`, 'info')
+        const mins = Math.max(
+          1,
+          Math.ceil((saved.expiresAt - Date.now()) / 60000)
+        )
+        this.notify(
+          `Conversão anterior recuperada! Disponível por mais aprox. ${mins} min.`,
+          'info'
+        )
       }
     },
     handleReset () {
@@ -201,7 +211,7 @@ export default {
 
         const responseData = await this.$store.dispatch('upload', {
           data: formData,
-          progress: event => {
+          progress: (event) => {
             if (event.total) {
               const p = Math.round((event.loaded * 100) / event.total)
               this.uploadPercent = p >= 100 ? 99 : p
@@ -272,20 +282,23 @@ export default {
         ease: spring({ bounce: 0.55, duration: 1100 }),
         delay: stagger(70, { start: 650 })
       })
-      this.onAccentEnter = () => animate(chars, {
-        y: [0, -22, 0],
-        scale: [1, 1.15, 1],
-        duration: 650,
-        ease: 'outElastic(1, .5)',
-        delay: stagger(45)
-      })
+      this.onAccentEnter = () =>
+        animate(chars, {
+          y: [0, -22, 0],
+          scale: [1, 1.15, 1],
+          duration: 650,
+          ease: 'outElastic(1, .5)',
+          delay: stagger(45)
+        })
       accent.addEventListener('mouseenter', this.onAccentEnter)
       this.accentEl = accent
     }
   },
   beforeDestroy () {
     if (this.intro) this.intro.revert()
-    if (this.accentEl) this.accentEl.removeEventListener('mouseenter', this.onAccentEnter)
+    if (this.accentEl) {
+      this.accentEl.removeEventListener('mouseenter', this.onAccentEnter)
+    }
     if (this.accentSplit) this.accentSplit.revert()
     if (this.expirationTimer) {
       clearInterval(this.expirationTimer)
@@ -312,7 +325,7 @@ export default {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-size: .75rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
     border: 1px solid var(--border);
     border-radius: 999px;
@@ -327,13 +340,15 @@ export default {
     letter-spacing: -0.04em;
     margin: 22px 0 18px;
 
-    > span { display: block; }
+    > span {
+      display: block;
+    }
   }
 
   &__accent {
     cursor: default;
     display: inline-block !important;
-    padding-bottom: .08em;
+    padding-bottom: 0.08em;
   }
 
   &__text {
@@ -353,7 +368,7 @@ export default {
     gap: 10px;
 
     li {
-      font-size: .78rem;
+      font-size: 0.78rem;
       color: var(--text-muted);
       padding: 8px 14px;
       border-radius: 10px;
@@ -361,9 +376,15 @@ export default {
       border: 1px solid var(--border);
     }
 
-    li:nth-child(1) strong { color: var(--red); }
-    li:nth-child(2) strong { color: var(--yellow); }
-    li:nth-child(3) strong { color: var(--green); }
+    li:nth-child(1) strong {
+      color: var(--red);
+    }
+    li:nth-child(2) strong {
+      color: var(--yellow);
+    }
+    li:nth-child(3) strong {
+      color: var(--green);
+    }
   }
 }
 
@@ -372,14 +393,20 @@ export default {
   height: 8px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 0 0 rgba(141, 255, 85, .6);
+  box-shadow: 0 0 0 0 rgba(141, 255, 85, 0.6);
   animation: live 1.8s infinite;
 }
 
 @keyframes live {
-  0% { box-shadow: 0 0 0 0 rgba(141, 255, 85, .6); }
-  70% { box-shadow: 0 0 0 10px rgba(141, 255, 85, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(141, 255, 85, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(141, 255, 85, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(141, 255, 85, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(141, 255, 85, 0);
+  }
 }
 
 @media (max-width: 960px) {

@@ -31,7 +31,7 @@
         <ul data-intro class="hero__stats font-mono">
           <li><strong>9</strong> formatos</li>
           <li><strong>100MB</strong> por arquivo</li>
-          <li><strong>15min</strong> p/ download</li>
+          <li><strong>15min</strong> de link válido</li>
         </ul>
       </section>
 

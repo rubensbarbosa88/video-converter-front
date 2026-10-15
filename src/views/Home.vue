@@ -22,7 +22,7 @@
         </span>
         <h1 class="hero__title font-display">
           <span data-split>Converta qualquer</span>
-          <span class="text-gradient hero__accent">vídeo.</span>
+          <span class="hero__accent">vídeo.</span>
         </h1>
         <p data-intro class="hero__text">
           Solte o arquivo, escolha o formato e acompanhe o upload e a conversão em tempo real.

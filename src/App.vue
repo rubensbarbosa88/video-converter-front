@@ -14,7 +14,7 @@
           <span class="brand__dots">
             <i class="dot dot--red" /><i class="dot dot--yellow" /><i class="dot dot--green" />
           </span>
-          <span class="brand__name font-display">conversor<span class="text-muted">.video</span></span>
+          <span class="brand__name font-display">rbs<span class="text-muted">.video-converter</span></span>
         </a>
         <span class="topbar__tag font-mono">ffmpeg · ws</span>
       </div>

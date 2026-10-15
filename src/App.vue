@@ -1,5 +1,7 @@
 <template>
   <v-app class="grid-bg">
+    <Analytics />
+
     <!-- Formas decorativas (arraste-as!) -->
     <div class="shapes-layer" aria-hidden="true">
       <div class="shape-wrap shape-wrap--1" title="Arraste-me"><span class="shape shape--circle" /></div>
@@ -36,12 +38,14 @@
 </template>
 
 <script>
+import { Analytics } from '@vercel/analytics/vue'
+
 import { animate, stagger, spring } from 'animejs'
 import { floatShapes, prefersReducedMotion } from '@/helpers/animations'
 
 export default {
   name: 'App',
-
+  components: { Analytics },
   mounted () {
     const wraps = this.$el.querySelectorAll('.shape-wrap')
     this.cleanupShapes = floatShapes(wraps)
@@ -63,7 +67,6 @@ export default {
       ]
     }
   },
-
   beforeDestroy () {
     if (this.cleanupShapes) this.cleanupShapes()
     if (this.introAnims) this.introAnims.forEach(a => a.revert())

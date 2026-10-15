@@ -4,8 +4,10 @@ import router from './router'
 import store from './store'
 import vuetify from './plugins/vuetify'
 import axios from 'axios'
+import { inject } from '@vercel/analytics'
 import './styles/theme.scss'
 
+inject()
 const baseURL = process.env.VUE_APP_API_URL || 'http://localhost:3000'
 
 const axiosInstance = axios.create({
